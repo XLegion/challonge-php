@@ -101,7 +101,7 @@ class ChallongeAPI {
         case 422: // Validation errors
         case 404: // Not found/Not in scope of account
           $return = $this->result = json_decode($curl_result, true);
-          foreach($return['error'] as $error) {
+          foreach($return['errors'] as $error) {
             $this->errors[] = $error;
           }
           $return = false;
