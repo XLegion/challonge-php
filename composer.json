@@ -3,6 +3,6 @@
     "description": "challonge php api",   
     "minimum-stability": "dev",
     "autoload": {
-        "classmap": ["challonge.class.php"]
+        "psr-4": { "": "src/" }
     }
 }

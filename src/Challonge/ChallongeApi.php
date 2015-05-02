@@ -1,38 +1,30 @@
 <?php
 /*
-  challonge-php v1.0.1 - A PHP API wrapper class for Challonge! (http://challonge.com)
+  challonge-php
+  A PHP API wrapper class for Challonge! (http://challonge.com)
   (c) 2014 Tony Drake
+  (c) 2015 Alexey Solodkiy
   Licensed under the MIT license: http://www.opensource.org/licenses/mit-license.php
 */
 
-class ChallongeAPI {
-  // Attributes
+namespace Challonge;
+
+
+class ChallongeApi
+{
   private $api_key;
-  public $errors = array();
-  public $warnings = array();
-  public $status_code = 0;
+
   public $verify_ssl = true;
   public $result = false;
   
-  /* 
-    Class Constructor
-    $api_key - String
-  */
   public function __construct($api_key='') {
     $this->api_key = $api_key;
   }
   
-  /*
-    makeCall()
-    $path - String
-    $params - array()
-    $method - String (get, post, put, delete)
-  */
   public function makeCall($path='', $params=array(), $method='get') {
    
     // Clear the public vars
-    $this->errors = array();
-    $this->status_code = 0;
+    $status_code = 0;
     $this->result = false;
     
     // Append the api_key to params so it'll get passed in with the call
@@ -89,46 +81,45 @@ class ChallongeAPI {
     
     $curl_result = curl_exec($curl_handle);   
     $info = curl_getinfo($curl_handle);
-    $this->status_code = (int) $info['http_code'];
-    $return = false;
-    if ($curl_result === false) { 
-      // CURL Failed
-      $this->errors[] = curl_error($curl_handle);
-    } else {
-      switch ($this->status_code) {
-      
-        case 401: // Bad API Key
-        case 422: // Validation errors
-        case 404: // Not found/Not in scope of account
-          $return = $this->result = json_decode($curl_result, true);
-          foreach($return['errors'] as $error) {
-            $this->errors[] = $error;
+    $status_code = (int) $info['http_code'];
+      try {
+          if ($curl_result === false) {
+              // CURL Failed
+              throw new ChallongeException(curl_error($curl_handle));
+          } else {
+              switch ($status_code) {
+
+                  case 401: // Bad API Key
+                  case 422: // Validation errors
+                  case 404: // Not found/Not in scope of account
+                      $this->result = json_decode($curl_result, true);
+                      throw new ChallongeException(implode(', ', $this->result['errors']), $status_code);
+                      break;
+
+                  case 500:
+                      $this->result = false;
+                      throw new ChallongeException("Server returned HTTP 500", $status_code);
+                      break;
+
+                  case 200:
+                      $return = $this->result = json_decode($curl_result, true);
+                      // Check if the result set is nil/empty
+                      if (sizeof($return) == 0) {
+                          throw new ChallongeException("Result set empty");
+                      }
+
+                      curl_close($curl_handle);
+                      return $return;
+                      break;
+
+                  default:
+                      throw new ChallongeException("Server returned unexpected HTTP Code ($status_code)");
+              }
           }
-          $return = false;
-          break;
-          
-        case 500: // Oh snap!
-          $return = $this->result = false;
-          $this->errors[] = "Server returned HTTP 500";
-          break;
-          
-        case 200:
-          $return = $this->result = json_decode($curl_result, true);
-          // Check if the result set is nil/empty
-          if (sizeof($return) ==0) {
-            $this->errors[] = "Result set empty";
-            $return = false;
-          }
-          break;
-          
-        default:
-          $this->errors[] = "Server returned unexpected HTTP Code ($this->status_code)";
-          $return = false;
+      } catch (ChallongeException $e) {
+          curl_close($curl_handle);
+          throw $e;
       }
-    }
-    
-    curl_close($curl_handle);
-    return $return;
   }
   
   public function getTournaments($params=array()) {
@@ -141,8 +132,7 @@ class ChallongeAPI {
   
   public function createTournament($params=array()) {
     if (sizeof($params) == 0) {
-      $this->errors = array('$params empty');
-      return false;
+        throw new ChallongeException('empty params');
     }
     return $this->makeCall("tournaments", $params, "post");
   }
@@ -178,8 +168,7 @@ class ChallongeAPI {
   
   public function createParticipant($tournament_id, $params=array()) {
     if (sizeof($params) == 0) {
-      $this->errors = array('$params empty');
-      return false;
+        throw new ChallongeException('empty params');
     }
     return $this->makeCall("tournaments/$tournament_id/participants", $params, "post");
   }
@@ -207,8 +196,7 @@ class ChallongeAPI {
   
   public function updateMatch($tournament_id, $match_id, $params=array()) {
     if (sizeof($params) == 0) {
-      $this->errors = array('$params empty');
-      return false;
+        throw new ChallongeException('empty params');
     }
     return $this->makeCall("tournaments/$tournament_id/matches/$match_id", $params, "put");
   }
