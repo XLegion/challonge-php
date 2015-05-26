@@ -156,6 +156,11 @@ class ChallongeApi
   public function resetTournament($tournament_id, $params=array()) {
     return $this->makeCall("tournaments/reset/$tournament_id", $params, "post");
   }
+
+    public function finalizeTournament($tournamentId)
+    {
+        return $this->makeCall("tournaments/$tournamentId/finalize", array(), "post");
+    }
   
   
   public function getParticipants($tournament_id) {
