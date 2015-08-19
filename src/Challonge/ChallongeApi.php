@@ -103,8 +103,7 @@ class ChallongeApi
 
                   case 200:
                       $return = $this->result = json_decode($curl_result, true);
-                      // Check if the result set is nil/empty
-                      if (sizeof($return) == 0) {
+                      if (is_null($return)) {
                           throw new ChallongeException("Result set empty");
                       }
 
